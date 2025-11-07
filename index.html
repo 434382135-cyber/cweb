@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="智能教学辅助系统 - 学习引擎与一键教案生成工具">
+    <title>智能教学辅助系统</title>
+    <style>
+        /* 使用CSS变量统一管理设计令牌 */
+        :root {
+            --color-bg-primary: linear-gradient(135deg, #0f172a, #1e3a8a);
+            --color-bg-secondary: rgba(15, 23, 42, 0.7);
+            --color-bg-tertiary: rgba(15, 23, 42, 0.5);
+            --color-accent-primary: #5eead4;
+            --color-accent-secondary: #38bdf8;
+            --color-accent-purple: #8b5cf6;
+            --color-text-primary: #e2e8f0;
+            --color-text-secondary: #94a3b8;
+            --color-border-primary: rgba(94, 234, 212, 0.2);
+            --shadow-main: 0 8px 32px rgba(2, 8, 20, 0.4);
+            --shadow-hover: 0 6px 12px rgba(0, 0, 0, 0.2);
+            --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --border-radius: 16px;
+            --max-width: 1200px;
+        }
+
+        /* 现代CSS重置 */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* 提升可访问性的焦点样式 */
+        :focus-visible {
+            outline: 2px solid var(--color-accent-secondary);
+            outline-offset: 2px;
+        }
+
+        .header {
+            background: var(--color-bg-secondary);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--color-border-primary);
+            padding: clamp(1rem, 3vw, 2rem);
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow-main);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary));
+        }
+
+        .header h1 {
+            font-size: clamp(1.5rem, 4vw, 2.2rem);
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .header p {
+            color: var(--color-text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .button-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.9rem 1.5rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition-base);
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: inherit;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 使用伪元素创建波纹效果 */
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(rgba(255,255,255,0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .btn:hover::before {
+            opacity: 1;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-engine {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            box-shadow: 0 4px 6px rgba(2, 132, 199, 0.3);
+        }
+
+        .btn-lesson {
+            background: linear-gradient(135deg, var(--color-accent-purple), #7c3aed);
+            box-shadow: 0 4px 6px rgba(124, 58, 237, 0.3);
+        }
+
+        .btn-clear {
+            background: var(--color-bg-secondary);
+            color: var(--color-text-secondary);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .btn-clear:hover {
+            color: var(--color-text-primary);
+            background: rgba(51, 65, 85, 0.7);
+        }
+
+        .iframe-container {
+            background: var(--color-bg-secondary);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--color-border-primary);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-main);
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .iframe-container.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .iframe-header {
+            padding: 1rem 1.25rem;
+            background: var(--color-bg-secondary);
+            border-bottom: 1px solid var(--color-border-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--color-accent-primary);
+        }
+
+        .iframe-title {
+            font-weight: 600;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .iframe-title::before {
+            content: "➤";
+            color: var(--color-accent-secondary);
+            font-size: 1.2em;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .close-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fecaca;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .close-btn:hover {
+            background: rgba(239, 68, 68, 0.3);
+            color: #fee2e2;
+        }
+
+        iframe {
+            width: 100%;
+            height: min(600px, 70vh);
+            border: none;
+            display: block;
+            background: #ffffff;
+        }
+
+        .status {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--color-text-secondary);
+            background: var(--color-bg-tertiary);
+            border-radius: var(--border-radius);
+            border: 1px dashed rgba(148, 163, 184, 0.2);
+            margin-bottom: 1.5rem;
+        }
+
+        .status-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.7;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .info-section {
+            background: var(--color-bg-tertiary);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--color-border-primary);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 20px rgba(2, 8, 20, 0.3);
+        }
+
+        .info-section h2 {
+            color: var(--color-accent-primary);
+            margin: 0 0 1rem 0;
+            font-size: 1.25rem;
+            border-bottom: 1px solid var(--color-border-primary);
+            padding-bottom: 0.5rem;
+        }
+
+        .info-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-section li {
+            margin-bottom: 0.75rem;
+            padding-left: 1.5rem;
+            position: relative;
+            color: var(--color-text-secondary);
+        }
+
+        .info-section li::before {
+            content: "•";
+            color: var(--color-accent-secondary);
+            position: absolute;
+            left: 0;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+
+        .info-section strong {
+            color: var(--color-accent-secondary);
+        }
+
+        /* 加载指示器 */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: var(--color-bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--color-accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+
+            .button-container {
+                grid-template-columns: 1fr;
+            }
+
+            iframe {
+                height: 400px;
+                height: min(400px, 60vh);
+            }
+
+            .iframe-header {
+                padding: 0.75rem 1rem;
+            }
+
+            .status {
+                padding: 2rem 1rem;
+            }
+        }
+
+        /* 错误信息显示 */
+        .error-message {
+            padding: 2rem;
+            text-align: center;
+            color: #fecaca;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+        }
+
+        .error-message h3 {
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .error-message button {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--color-accent-secondary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .error-message button:hover {
+            background: #0ea5e9;
+        }
+
+        /* 减少动画偏好 */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* 打印样式 */
+        @media print {
+            .button-container, .iframe-container, .header {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>智能教学辅助系统</h1>
+            <p>选择功能按钮开始体验AI教学工具</p>
+        </header>
+
+        <main>
+            <div id="iframeContainer" class="iframe-container" role="region" aria-label="功能内容区域">
+                <div class="iframe-header">
+                    <h2 class="iframe-title" id="iframeTitle">功能界面</h2>
+                    <button class="close-btn" id="closeBtn" aria-label="关闭当前功能">
+                        <span aria-hidden="true">✕</span> 关闭
+                    </button>
+                </div>
+                <div style="position: relative;">
+                    <iframe 
+                        id="mainIframe" 
+                        src="" 
+                        allow="microphone; camera"
+                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                        loading="lazy"
+                        title="功能内容"
+                    ></iframe>
+                    <div class="loading-overlay" id="loadingOverlay">
+                        <div class="spinner" aria-label="加载中"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="statusMessage" class="status" role="status">
+                <div class="status-icon" aria-hidden="true">🎯</div>
+                <p>请选择一个功能按钮开始使用</p>
+            </div>
+
+            <nav class="button-container" role="navigation" aria-label="主要功能">
+                <button class="btn btn-engine" data-action="engine" aria-label="打开学习引擎">
+                    <span aria-hidden="true">🚀</span> 学习引擎
+                </button>
+                <button class="btn btn-lesson" data-action="lesson" aria-label="打开一键教案">
+                    <span aria-hidden="true">📋</span> 一键教案
+                </button>
+                <button class="btn btn-clear" data-action="clear" aria-label="清除当前内容">
+                    <span aria-hidden="true">🗑️</span> 清除
+                </button>
+            </nav>
+        </main>
+
+        <aside class="info-section" aria-label="使用说明">
+            <h2>使用说明</h2>
+            <ul>
+                <li><strong>学习引擎：</strong>AI驱动的个性化学习平台，支持语音交互与智能答疑</li>
+                <li><strong>一键教案：</strong>自动生成结构化教学方案，支持自定义调整与导出</li>
+                <li><strong>清除：</strong>关闭当前功能并返回初始状态</li>
+                <li><strong>快捷键：</strong>按 <kbd>Esc</kbd> 键可快速关闭当前功能</li>
+            </ul>
+        </aside>
+    </div>
+
+    <script>
+        // 使用IIFE封装，避免全局污染
+        (function() {
+            'use strict';
+
+            // 集中管理DOM元素引用
+            const elements = {
+                iframeContainer: document.getElementById('iframeContainer'),
+                mainIframe: document.getElementById('mainIframe'),
+                statusMessage: document.getElementById('statusMessage'),
+                iframeTitle: document.getElementById('iframeTitle'),
+                loadingOverlay: document.getElementById('loadingOverlay'),
+                closeBtn: document.getElementById('closeBtn'),
+                buttonContainer: document.querySelector('.button-container')
+            };
+
+            // 配置对象
+            const config = {
+                urls: {
+                    engine: {
+                        url: 'http://171.111.194.87:9015/chatbot/xaM06PrRweSAmhlZ',
+                        title: '学习引擎'
+                    },
+                    lesson: {
+                        url: 'http://171.111.194.87:9015/chatbot/BwEKzRM9kiuqi1MZ',
+                        title: '一键教案'
+                    }
+                },
+                iframe: {
+                    timeout: 30000, // 30秒超时
+                    loadingTimeout: null
+                }
+            };
+
+            // 工具函数
+            const utils = {
+                // 防抖函数
+                debounce: (func, wait) => {
+                    let timeout;
+                    return function executedFunction(...args) {
+                        const later = () => {
+                            clearTimeout(timeout);
+                            func(...args);
+                        };
+                        clearTimeout(timeout);
+                        timeout = setTimeout(later, wait);
+                    };
+                },
+
+                // 检查URL有效性
+                isValidUrl: (string) => {
+                    try {
+                        const url = new URL(string);
+                        return url.protocol === 'http:' || url.protocol === 'https:';
+                    } catch (_) {
+                        return false;
+                    }
+                },
+
+                // 显示/隐藏加载状态
+                setLoading: (isLoading) => {
+                    elements.loadingOverlay.classList.toggle('active', isLoading);
+                    elements.mainIframe.style.opacity = isLoading ? '0' : '1';
+                },
+
+                // 显示错误信息
+                showError: (message) => {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.innerHTML = `
+                        <h3>❌ 页面加载失败</h3>
+                        <p>${message}</p>
+                        <button onclick="location.reload()">刷新页面</button>
+                    `;
+                    elements.mainIframe.style.display = 'none';
+                    elements.iframeContainer.appendChild(errorDiv);
+                    elements.iframeTitle.textContent = '加载失败';
+                }
+            };
+
+            // 应用状态管理
+            const state = {
+                currentType: null,
+                isLoading: false,
+                error: null
+            };
+
+            // 核心功能模块
+            const app = {
+                // 加载iframe
+                load: (type) => {
+                    if (state.isLoading) return;
+
+                    const urlConfig = config.urls[type];
+                    if (!urlConfig || !utils.isValidUrl(urlConfig.url)) {
+                        utils.showError('无效的URL配置');
+                        return;
+                    }
+
+                    state.currentType = type;
+                    state.isLoading = true;
+                    utils.setLoading(true);
+
+                    // 设置超时
+                    config.iframe.loadingTimeout = setTimeout(() => {
+                        state.isLoading = false;
+                        utils.setLoading(false);
+                        utils.showError('页面加载超时，请检查网络连接');
+                    }, config.iframe.timeout);
+
+                    // 更新UI
+                    elements.iframeTitle.textContent = urlConfig.title;
+                    elements.mainIframe.src = urlConfig.url;
+                    elements.statusMessage.style.display = 'none';
+                    elements.iframeContainer.classList.add('active');
+
+                    // 统计信息（可选）
+                    app.trackEvent('load', type);
+                },
+
+                // 清除iframe
+                clear: () => {
+                    if (state.isLoading) return;
+
+                    state.currentType = null;
+                    elements.iframeContainer.classList.remove('active');
+                    elements.statusMessage.style.display = 'block';
+                    elements.mainIframe.src = 'about:blank'; // 使用about:blank避免历史记录问题
+                    elements.iframeTitle.textContent = '功能界面';
+
+                    // 清理错误信息
+                    const errorMsg = elements.iframeContainer.querySelector('.error-message');
+                    if (errorMsg) {
+                        errorMsg.remove();
+                    }
+                    elements.mainIframe.style.display = 'block';
+
+                    // 清理超时
+                    if (config.iframe.loadingTimeout) {
+                        clearTimeout(config.iframe.loadingTimeout);
+                    }
+
+                    utils.setLoading(false);
+                    state.isLoading = false;
+
+                    // 统计信息
+                    app.trackEvent('clear');
+                },
+
+                // 事件跟踪（可扩展为实际的分析工具）
+                trackEvent: (action, type = null) => {
+                    if (window.gtag) {
+                        window.gtag('event', action, {
+                            category: '教学工具',
+                            label: type || 'clear'
+                        });
+                    }
+                    // 控制台日志便于调试
+                    console.log(`[教学工具] 事件: ${action}${type ? `, 类型: ${type}` : ''}`);
+                }
+            };
+
+            // 事件监听器
+            const events = {
+                // iframe加载完成
+                onIframeLoad: () => {
+                    if (config.iframe.loadingTimeout) {
+                        clearTimeout(config.iframe.loadingTimeout);
+                    }
+                    state.isLoading = false;
+                    utils.setLoading(false);
+                    elements.mainIframe.style.opacity = '1';
+                    console.log(`[教学工具] ${state.currentType} 加载完成`);
+                },
+
+                // iframe加载错误
+                onIframeError: () => {
+                    if (config.iframe.loadingTimeout) {
+                        clearTimeout(config.iframe.loadingTimeout);
+                    }
+                    state.isLoading = false;
+                    utils.setLoading(false);
+                    utils.showError('无法连接到服务，请检查网络或稍后重试');
+                    console.error('[教学工具] iframe加载失败');
+                },
+
+                // 键盘事件
+                onKeyDown: (e) => {
+                    if (e.key === 'Escape' && state.currentType) {
+                        app.clear();
+                    }
+                },
+
+                // 按钮点击事件
+                onButtonClick: (e) => {
+                    const btn = e.target.closest('.btn');
+                    if (!btn) return;
+
+                    const action = btn.dataset.action;
+                    switch (action) {
+                        case 'engine':
+                        case 'lesson':
+                            app.load(action);
+                            break;
+                        case 'clear':
+                            app.clear();
+                            break;
+                    }
+                }
+            };
+
+            // 初始化应用
+            const init = () => {
+                // 绑定事件
+                elements.mainIframe.addEventListener('load', events.onIframeLoad);
+                elements.mainIframe.addEventListener('error', events.onIframeError);
+                elements.closeBtn.addEventListener('click', app.clear);
+                elements.buttonContainer.addEventListener('click', events.onButtonClick);
+                document.addEventListener('keydown', events.onKeyDown);
+
+                // 性能优化：防抖resize事件
+                window.addEventListener('resize', utils.debounce(() => {
+                    // 可在此处理响应式逻辑
+                }, 250));
+
+                // 检查浏览器支持
+                if (!('contentDocument' in document.createElement('iframe'))) {
+                    alert('您的浏览器不支持iframe功能，请升级浏览器');
+                }
+
+                console.log('[教学工具] 系统初始化完成');
+            };
+
+            // 页面加载完成后初始化
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+            // 全局错误处理
+            window.addEventListener('error', (e) => {
+                console.error('[教学工具] 全局错误:', e.error);
+            });
+
+            // 暴露必要的全局接口（可选）
+            window.teachingAssistant = {
+                load: app.load,
+                clear: app.clear,
+                getState: () => ({ ...state })
+            };
+        })();
+    </script>
+</body>
+</html>
